@@ -60,6 +60,14 @@ answers with one message per list row (`Index`, `Count`, fields) or an
 - Plan order: first row opens the live view.
 - Requests: UP accepts, DOWN declines.
 
+## Settings page
+
+Signed in, the app's **Settings** in the Pebble app opens the same hosted
+page as a settings page: vibrate on item change, which service types the
+watch shows, switch account and sign out. The service type list is the one
+seen on the last plans refresh, so open the watch app once after signing in.
+Changing the service types makes a running watch app reload its plans.
+
 ## Still to test on real hardware
 
 The `pebble` tool runs its own PebbleKit JS, not the iOS and Android ones:

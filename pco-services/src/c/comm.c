@@ -247,6 +247,10 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
     s_signed_in = signed_in;
     if (changed && s_callbacks.on_auth_changed) s_callbacks.on_auth_changed(signed_in);
   }
+  if (dict_find(iter, MESSAGE_KEY_PlansChanged)) {
+    if (s_signed_in && s_callbacks.on_plans_changed) s_callbacks.on_plans_changed();
+    return;
+  }
 
   // Answers: ignore anything for an older request.
   int32_t req_id;

@@ -14,7 +14,7 @@ Layout:
 - `src/c/` watch app. `main.c` (startup, routing), `comm.c` (AppMessage with timeout/retry),
   `data.c` (stores + persistent cache), `ui_*.c` (one file per screen).
 - `src/pkjs/` phone side. `index.js` (messaging), `auth.js` (OAuth PKCE + refresh), `pco.js` (API calls),
-  `sha256.js`, `config.js` (client ID, login page URL, demo mode).
+  `sha256.js`, `prefs.js` (service type list and filter), `config.js` (client ID, login page URL, demo mode).
 - `../login-page/index.html` static HTTPS page that relays the OAuth code to `pebblejs://close#`.
 
 Rules:

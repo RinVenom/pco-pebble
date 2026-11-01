@@ -37,6 +37,7 @@ typedef struct {
   void (*on_ready)(bool signed_in);
   void (*on_auth_changed)(bool signed_in);
   void (*on_connection_changed)(bool connected);
+  void (*on_plans_changed)(void);  // settings changed which plans to show
 } CommCallbacks;
 
 void comm_init(CommCallbacks callbacks);

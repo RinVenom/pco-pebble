@@ -5,6 +5,7 @@
 
 var config = require('./config');
 var auth = require('./auth');
+var prefs = require('./prefs');
 var source = config.DEMO_MODE ? require('./demo') : require('./pco');
 
 // Request types shared with the watch (see comm.h).
@@ -57,6 +58,11 @@ function sendAuthState() {
 
 function sendVibeSetting() {
   sendSequence([{ VibeOnChange: localStorage.getItem(K_VIBE) === '1' ? 1 : 0 }], -1);
+}
+
+// Tells a running watch app to reload its plans.
+function sendPlansChanged() {
+  sendSequence([{ PlansChanged: 1 }], -1);
 }
 
 function listMessages(rows, toMsg) {
@@ -159,7 +165,12 @@ Pebble.addEventListener('showConfiguration', function () {
     return;
   }
   var mode = auth.isSignedIn() ? 'manage' : 'signin';
-  Pebble.openURL(auth.buildLoginUrl(mode, localStorage.getItem(K_VIBE) === '1'));
+  var extra = {};
+  if (mode === 'manage') {
+    extra.types = JSON.stringify(prefs.getServiceTypes());
+    extra.hidden = prefs.getHiddenTypes().join(',');
+  }
+  Pebble.openURL(auth.buildLoginUrl(mode, localStorage.getItem(K_VIBE) === '1', extra));
 });
 
 // The login page returns JSON through pebblejs://close#<data>.
@@ -176,6 +187,10 @@ Pebble.addEventListener('webviewclosed', function (e) {
     sendVibeSetting();
   }
 
+  if (data.action === 'settings' && Array.isArray(data.hidden)) {
+    if (prefs.setHiddenTypes(data.hidden)) sendPlansChanged();
+  }
+
   if (data.action === 'auth' && data.code) {
     auth.exchangeCode(String(data.code), String(data.state || ''), function (err) {
       if (err) {
@@ -185,6 +200,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
       sendAuthState();
     });
   } else if (data.action === 'signout') {
+    prefs.clearAccount();
     auth.signOut(function () { sendAuthState(); });
   } else if (data.action === 'error') {
     console.log('Sign-in cancelled or denied');

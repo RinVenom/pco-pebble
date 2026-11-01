@@ -61,20 +61,23 @@ function isSignedIn() {
 // Builds the login page URL for Pebble.openURL(). Creates a fresh verifier
 // and state each time and stores them until the page returns.
 // mode: 'signin' or 'manage' (signed in: shows sign out and settings).
-function buildLoginUrl(mode, vibe) {
+// extra: more query parameters for the settings page.
+function buildLoginUrl(mode, vibe, extra) {
   var verifier = randomString(64);
   var state = randomString(32);
   localStorage.setItem(K_VERIFIER, verifier);
   localStorage.setItem(K_STATE, state);
   var challenge = sha.base64url(sha.sha256Bytes(verifier));
-  return config.LOGIN_URL + '?' + http.formEncode({
+  var params = {
     mode: mode,
     client_id: config.CLIENT_ID,
     scope: config.SCOPE,
     code_challenge: challenge,
     state: state,
     vibe: vibe ? '1' : '0'
-  });
+  };
+  for (var k in (extra || {})) params[k] = extra[k];
+  return config.LOGIN_URL + '?' + http.formEncode(params);
 }
 
 function storeTokens(json) {

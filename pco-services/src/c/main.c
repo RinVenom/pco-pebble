@@ -68,6 +68,12 @@ static void on_connection_changed(bool connected) {
   }
 }
 
+// The service type filter changed on the phone. Shows the new list on the
+// main menu (or when the user returns to it).
+static void on_plans_changed(void) {
+  plans_window_refresh();
+}
+
 static void ready_timeout(void *ctx) {
   s_ready_timer = NULL;
   if (comm_is_ready()) return;
@@ -81,6 +87,7 @@ static void init(void) {
     .on_ready = on_ready,
     .on_auth_changed = on_auth_changed,
     .on_connection_changed = on_connection_changed,
+    .on_plans_changed = on_plans_changed,
   });
   plans_window_push();
 

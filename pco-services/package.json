@@ -18,7 +18,7 @@
       "Index", "Count", "Section", "ServiceTypeId", "PlanId", "ItemId",
       "Title", "Subtitle", "Kind", "LastServiceType",
       "LiveState", "LiveCurTitle", "LiveNextTitle", "LiveElapsed", "LiveLength",
-      "VibeOnChange", "Accept", "Result"
+      "VibeOnChange", "Accept", "Result", "PlansChanged"
     ],
     "resources": {
       "media": [

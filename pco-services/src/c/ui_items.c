@@ -18,11 +18,13 @@ static uint16_t get_num_rows(MenuLayer *ml, uint16_t section, void *ctx) {
   return 1 + g_data.item_count;
 }
 
+static bool is_header_row(uint16_t row) {
+  return row > 0 && items_ready() && row - 1 < g_data.item_count &&
+         g_data.items[row - 1].kind == KIND_HEADER;
+}
+
 static int16_t get_cell_height(MenuLayer *ml, MenuIndex *idx, void *ctx) {
-  if (idx->row > 0 && items_ready() && idx->row - 1 < g_data.item_count &&
-      g_data.items[idx->row - 1].kind == KIND_HEADER) {
-    return PBL_IF_ROUND_ELSE(menu_layer_is_index_selected(ml, idx) ? 44 : 30, 30);
-  }
+  if (is_header_row(idx->row)) return 30;
   return PBL_IF_ROUND_ELSE(menu_layer_is_index_selected(ml, idx) ? 60 : 44, 44);
 }
 
@@ -77,6 +79,18 @@ static void draw_row(GContext *ctx, const Layer *cell, MenuIndex *idx, void *dat
   }
 }
 
+// Section headers are dividers, not choices: the cursor skips over them in
+// the direction it was moving, and stays put if only headers are left.
+static void selection_will_change(MenuLayer *ml, MenuIndex *new_index, MenuIndex old_index, void *ctx) {
+  if (!is_header_row(new_index->row)) return;
+  int step = new_index->row > old_index.row ? 1 : -1;
+  int rows = get_num_rows(ml, 0, NULL);
+  for (int r = new_index->row + step; r >= 0 && r < rows; r += step) {
+    if (!is_header_row(r)) { new_index->row = r; return; }
+  }
+  *new_index = old_index;
+}
+
 static void load_items(void) {
   s_loading = true;
   s_error = ERR_NONE;
@@ -116,6 +130,7 @@ static void window_load(Window *window) {
     .draw_header = draw_header,
     .draw_row = draw_row,
     .select_click = select_click,
+    .selection_will_change = selection_will_change,
   });
   menu_layer_set_highlight_colors(s_menu, ACCENT_COLOR, GColorWhite);
   menu_layer_set_click_config_onto_window(s_menu, window);

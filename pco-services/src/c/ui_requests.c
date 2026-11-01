@@ -20,34 +20,53 @@ static bool s_sent_accept;
 
 // ---- Detail ---------------------------------------------------------------
 
+// All text is black and bold for contrast. Large screens (Time 2, Round 2)
+// get bigger fonts; the button hint sits at the bottom.
 static void detail_draw(Layer *layer, GContext *ctx) {
   GRect b = layer_get_unobstructed_bounds(layer);
+  bool large = b.size.h >= 200;  // Time 2, Round 2
   int inset = PBL_IF_ROUND_ELSE(b.size.w / 7, 6);
-  GRect box = GRect(b.origin.x + inset, b.origin.y + PBL_IF_ROUND_ELSE(b.size.h / 6, 6),
-                    b.size.w - 2 * inset, b.size.h);
+  int x = b.origin.x + inset;
+  int w = b.size.w - 2 * inset + PBL_IF_ROUND_ELSE(0, 2);
+  int top = b.origin.y + PBL_IF_ROUND_ELSE(b.size.h / 6, 2);
+  int bottom = b.origin.y + b.size.h - PBL_IF_ROUND_ELSE(b.size.h / 6, 4);
   GTextAlignment align = PBL_IF_ROUND_ELSE(GTextAlignmentRight, GTextAlignmentLeft);
-  int y = box.origin.y;
 
-  graphics_context_set_text_color(ctx, ACCENT_COLOR);
-  GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-  GSize ts = graphics_text_layout_get_content_size(s_selected.title, title_font,
-      GRect(0, 0, box.size.w, 60), GTextOverflowModeWordWrap, align);
-  graphics_draw_text(ctx, s_selected.title, title_font, GRect(box.origin.x, y, box.size.w, 60),
-                     GTextOverflowModeWordWrap, align, NULL);
-  y += ts.h + 4;
-
+  GFont title_font = fonts_get_system_font(large ? FONT_KEY_GOTHIC_28_BOLD : FONT_KEY_GOTHIC_24_BOLD);
+  GFont body_font = fonts_get_system_font(large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD);
+  GFont hint_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   graphics_context_set_text_color(ctx, GColorBlack);
-  GFont body = fonts_get_system_font(FONT_KEY_GOTHIC_18);
-  GSize ss = graphics_text_layout_get_content_size(s_selected.subtitle, body,
-      GRect(0, 0, box.size.w, 66), GTextOverflowModeWordWrap, align);
-  graphics_draw_text(ctx, s_selected.subtitle, body, GRect(box.origin.x, y, box.size.w, 66),
-                     GTextOverflowModeWordWrap, align, NULL);
-  y += ss.h + 8;
 
-  graphics_context_set_text_color(ctx, MUTED_COLOR);
-  graphics_draw_text(ctx, s_sending ? "Sending..." : "Up: accept\nDown: decline",
-                     body, GRect(box.origin.x, y, box.size.w, 50),
+  // Hint, anchored to the bottom. Round screens have no room for it; the
+  // action bar icons say the same thing.
+  const char *hint = s_sending ? "Sending..." : PBL_IF_ROUND_ELSE("", "Up: accept\nDown: decline");
+  int hint_h = graphics_text_layout_get_content_size(hint, hint_font, GRect(0, 0, w, 44),
+      GTextOverflowModeWordWrap, align).h;
+  graphics_draw_text(ctx, hint, hint_font, GRect(x, bottom - hint_h - 4, w, hint_h + 4),
                      GTextOverflowModeWordWrap, align, NULL);
+  int text_bottom = hint[0] ? bottom - hint_h - 6 : bottom;
+
+  // Title (team or service), then date and position.
+  int y = top;
+  int max_title = large ? 64 : 54;
+  int title_h = graphics_text_layout_get_content_size(s_selected.title, title_font,
+      GRect(0, 0, w, max_title), GTextOverflowModeTrailingEllipsis, align).h;
+  graphics_draw_text(ctx, s_selected.title, title_font, GRect(x, y - 4, w, max_title),
+                     GTextOverflowModeTrailingEllipsis, align, NULL);
+  y += (title_h < max_title ? title_h : max_title) + 2;
+
+  // "Nov 8 · Acoustic Guitar" -> date and position on their own lines.
+  char sub[SUBTITLE_LEN + 2];
+  data_copy(sub, s_selected.subtitle, sizeof(sub));
+  char *dot = strstr(sub, " \xC2\xB7 ");
+  if (dot) {
+    *dot = '\n';
+    memmove(dot + 1, dot + 4, strlen(dot + 4) + 1);
+  }
+  if (text_bottom > y) {
+    graphics_draw_text(ctx, sub, body_font, GRect(x, y - 2, w, text_bottom - y),
+                       GTextOverflowModeTrailingEllipsis, align, NULL);
+  }
 }
 
 static void send_response(bool accept) {

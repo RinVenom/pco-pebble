@@ -4,6 +4,7 @@
 
 var auth = require('./auth');
 var http = require('./http');
+var prefs = require('./prefs');
 
 var BASE = 'https://api.planningcenteronline.com/services/v2';
 var ERR = auth.ERR;
@@ -67,10 +68,16 @@ function startOfTodayIso() {
 // Upcoming plans grouped by service type. The service type the user opened
 // last comes first. "after midnight today" keeps a service that is already
 // running in the list, which filter=future may drop once it starts.
+// Service types hidden on the settings page are skipped, and their plans
+// are never requested.
 function getPlans(lastServiceTypeId, cap, cb) {
   api('GET', '/service_types?per_page=100', null, function (err, json, retryAfter) {
     if (err) { cb(err, null, retryAfter); return; }
-    var types = (json && json.data) || [];
+    var allTypes = (json && json.data) || [];
+    prefs.setServiceTypes(allTypes.map(function (t) {
+      return { id: t.id, name: t.attributes && t.attributes.name };
+    }));
+    var types = allTypes.filter(function (t) { return !prefs.isHidden(t.id); });
     var byType = {};
     var firstErr = 0, firstRetry = 0;
     var after = encodeURIComponent(startOfTodayIso());

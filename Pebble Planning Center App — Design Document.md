@@ -60,7 +60,8 @@ Flow steps:
 **Login page modes**
 
 - Signed out: one button that sends the user to Planning Center.
-- Signed in: the same page is the app's settings page. It has a "Vibrate when the live item changes" switch (off by default), "Sign in as someone else", and "Sign out". It returns `{action: "settings" | "signout", vibe}` through `pebblejs://close#`.
+- Signed in: the same page is the app's settings page. It has a "Vibrate when the live item changes" switch (off by default), a "Service types on your watch" checklist, "Sign in as someone else", and "Sign out". It returns `{action: "settings", vibe, hidden}` or `{action: "signout", vibe}` through `pebblejs://close#`.
+- Service type filter: PebbleKit JS passes the service types seen on the last plans refresh (`types`, JSON `[[id, name], ...]`) and the hidden ids (`hidden`, comma-separated). The page shows a checkbox per type (checked = shown) and returns the unchecked ids. At least one type must stay checked. The phone stores hidden ids, not shown ids, so a new service type appears by default. Hidden types are skipped before their plans are requested. When the hidden set changes, PebbleKit JS sends `PlansChanged` and the watch reloads its plans. Sign-out clears the list and the filter. If the phone has not loaded plans yet, the page asks the user to open the watch app once first.
 - After the redirect, the page returns `{action: "auth", code, state}` or `{action: "error", error}`.
 
 **Endpoints**
@@ -134,9 +135,9 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 
 1. Sign-in prompt. A full-screen message that tells the user to open the app settings in the Pebble mobile app. Show it when no token is present. BACK leaves the app.
 2. Main menu (`MenuLayer`). Lists upcoming plans by service type, up to 4 per type. The top row shows the cache age ("Updated 5m ago", "Offline · 2h ago"); SELECT on it refreshes. Long-press SELECT on a plan opens its live view. A last "More" section opens Requests.
-3. Plan order view (`MenuLayer`). The first row opens the live view. Headers show as gray dividers. Subtitles show key, length and pre/post-service.
+3. Plan order view (`MenuLayer`). The first row opens the live view. Headers show as gray dividers, and the cursor skips over them when scrolling. Subtitles show key, length and pre/post-service.
 4. Live view. The current item (28 pt, up to 2 lines), time left in the item counting down, "left of 4:30" or "over 4:30" in red, a progress bar, and the next item at the bottom. A `StatusBarLayer` shows the time of day. "Reconnecting..." replaces the label when the last good poll is over 20 seconds old.
-5. Requests view (nice-to-have). Pending requests, then a detail screen with an `ActionBarLayer`: UP accepts, DOWN declines. A result dialog closes itself after 2 seconds.
+5. Requests view (nice-to-have). Pending requests, then a detail screen with an `ActionBarLayer`: UP accepts, DOWN declines. The detail text is black and bold, with larger fonts on Time 2 and Round 2, and the date and position on separate lines. Rectangular screens show an "Up: accept / Down: decline" hint at the bottom; round screens rely on the action bar icons. A result dialog closes itself after 2 seconds.
 
 **Data flow**
 
@@ -288,3 +289,6 @@ Still open:
 | User-Agent | Not mentioned | Sent where the runtime allows | Planning Center may reject requests without one. |
 | Live shortcut | Not in spec | Long-press a plan opens live view | One step fewer during a service. |
 | Aplite lists | Not specified | 8 plans, 16 items, 4 requests | Memory. |
+| Service type filter | Not in spec | Checklist on the settings page; hidden types are not fetched | Users asked to choose which service types the watch shows. |
+| Plan order headers | Selectable | Skipped by the cursor | Headers are dividers, not choices. |
+| Request detail text | 18 pt, gray hint | Bold black; 28/24 pt on Time 2 and Round 2 | Hard to read on a Time 2. |

@@ -21,7 +21,12 @@
   .secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
   .danger { background: transparent; color: #d33; border: 1px solid var(--border); }
   label { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 8px 0 6px; }
-  input[type=checkbox] { width: 22px; height: 22px; }
+  input[type=checkbox] { width: 22px; height: 22px; flex: none; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 22px 0 4px; }
+  .types label { border-top: 0; margin: 0; padding: 10px 0; }
+  .types label + label { border-top: 1px solid var(--border); }
+  .note { font-size: 15px; margin: 6px 0 0; }
+  .warn { color: #d33; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -38,6 +43,9 @@
       <h1>PCO Services</h1>
       <p>You are signed in to Planning Center on this phone.</p>
       <label>Vibrate when the live item changes <input type="checkbox" id="vibe"></label>
+      <h2>Service types on your watch</h2>
+      <div class="types" id="types"></div>
+      <p class="note" id="types-note"></p>
       <button class="primary" id="save">Save</button>
       <button class="secondary" id="switch">Sign in as someone else</button>
       <button class="danger" id="signout">Sign out</button>
@@ -100,6 +108,50 @@
 
   function vibeValue() { return document.getElementById('vibe').checked; }
 
+  // Service types come from the phone as [[id, name], ...]. Checked = shown
+  // on the watch. The page returns the unchecked ids.
+  function readTypes() {
+    try {
+      var list = JSON.parse(params.get('types') || '[]');
+      return Array.isArray(list) ? list.filter(function (t) {
+        return Array.isArray(t) && t.length >= 2;
+      }) : [];
+    } catch (e) { return []; }
+  }
+
+  function renderTypes() {
+    var box = document.getElementById('types');
+    var note = document.getElementById('types-note');
+    var types = readTypes();
+    var hidden = (params.get('hidden') || '').split(',');
+    if (!types.length) {
+      note.textContent = 'Open PCO Services on your watch once, then come back here to choose which service types it shows.';
+      return;
+    }
+    note.textContent = 'Unchecked service types are hidden from the watch. New service types are shown until you hide them.';
+    types.forEach(function (t) {
+      var label = document.createElement('label');
+      var name = document.createElement('span');
+      name.textContent = String(t[1]);
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = String(t[0]);
+      cb.checked = hidden.indexOf(String(t[0])) < 0;
+      label.appendChild(name);
+      label.appendChild(cb);
+      box.appendChild(label);
+    });
+  }
+
+  // null when the list was not shown, so the phone keeps its saved choice.
+  function hiddenValue() {
+    var boxes = document.querySelectorAll('#types input');
+    if (!boxes.length) return null;
+    var out = [];
+    for (var i = 0; i < boxes.length; i++) if (!boxes[i].checked) out.push(boxes[i].value);
+    return out;
+  }
+
   // 1. Back from Planning Center with ?code=…&state=… or ?error=…
   if (params.has('code') || params.has('error')) {
     // Remove the code from the address bar and history right away.
@@ -128,7 +180,21 @@
 
   if (params.get('mode') === 'manage') {
     document.getElementById('vibe').checked = params.get('vibe') === '1';
-    document.getElementById('save').onclick = function () { closeWith({ action: 'settings', vibe: vibeValue() }); };
+    renderTypes();
+    document.getElementById('save').onclick = function () {
+      var hidden = hiddenValue();
+      var data = { action: 'settings', vibe: vibeValue() };
+      if (hidden) {
+        if (hidden.length === document.querySelectorAll('#types input').length) {
+          var note = document.getElementById('types-note');
+          note.textContent = 'Choose at least one service type.';
+          note.className = 'note warn';
+          return;
+        }
+        data.hidden = hidden;
+      }
+      closeWith(data);
+    };
     document.getElementById('switch').onclick = function () { startAuthorize(true); };
     document.getElementById('signout').onclick = function () { closeWith({ action: 'signout', vibe: vibeValue() }); };
     show('manage');

@@ -2,6 +2,8 @@
 // pco.js. Lets the emulator show every screen without a Planning Center
 // account. Never enable in a release build.
 
+var prefs = require('./prefs');
+
 var KIND = { ITEM: 0, SONG: 1, HEADER: 2, MEDIA: 3 };
 
 var PLANS = [
@@ -36,7 +38,10 @@ function later(fn) { setTimeout(fn, 300); }
 
 module.exports = {
   getPlans: function (last, cap, cb) {
-    later(function () { cb(0, PLANS.slice(0, cap)); });
+    later(function () {
+      prefs.setServiceTypes([{ id: '101', name: 'Sunday Morning' }, { id: '102', name: 'Youth Night' }]);
+      cb(0, PLANS.filter(function (p) { return !prefs.isHidden(p.serviceTypeId); }).slice(0, cap));
+    });
   },
   getItems: function (st, plan, cap, cb) {
     later(function () { cb(0, ITEMS.slice(0, cap)); });
