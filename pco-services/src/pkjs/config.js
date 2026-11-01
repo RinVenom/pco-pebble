@@ -2,7 +2,7 @@
 module.exports = {
   // Client ID of the public OAuth app registered at https://api.planningcenteronline.com/oauth/applications.
   // The client ID is public. Never put a client secret here.
-  CLIENT_ID: 'YOUR_PCO_CLIENT_ID',
+  CLIENT_ID: '38b41e27f750781a8d32f6233029cf863b93f9d97b5ea16513c978e9f7e02b7f',
 
   // HTTPS URL of login-page/index.html. Register this exact URL as the
   // redirect URI of the OAuth app.
