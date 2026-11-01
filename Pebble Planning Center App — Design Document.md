@@ -67,7 +67,7 @@ Flow steps:
 
 - Authorize: `https://api.planningcenteronline.com/oauth/authorize`
 - Token: `https://api.planningcenteronline.com/oauth/token`
-- Redirect URI: the hosted login page URL. Register it in the Planning Center OAuth app.
+- Redirect URI: the hosted login page URL, `https://rinvenom.github.io/pco-pebble/`. Register it in the Planning Center OAuth app.
 
 **Token storage.** Store the access token and refresh token in PebbleKit JS `localStorage` on the phone side. PebbleKit JS makes every API call, so the tokens never cross Bluetooth to the watch. This storage is separate for each app UUID and persists across app launches. The access token expires. Use the refresh token to get a new access token. Run a refresh step when a request returns HTTP 401.
 
@@ -127,7 +127,7 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 - Pebble SDK 4.33.1. The watchapp is written in C. C runs on all seven platforms: aplite, basalt, chalk, diorite, emery, flint, and gabbro.
 - Alloy (JavaScript on the watch) runs on emery and gabbro only. Use Alloy only if the app targets Pebble Time 2 and Pebble Round 2 alone.
 - PebbleKit JS (`src/pkjs/index.js`) runs on the phone. It makes the network calls, stores the tokens, and opens the login page.
-- Login page: a static HTML page on HTTPS hosting, such as GitHub Pages. Do not use Clay for sign-in. Clay builds a local `data:` page, and an OAuth redirect cannot return to it.
+- Login page: a static HTML page on HTTPS hosting. It is on GitHub Pages at `https://rinvenom.github.io/pco-pebble/`, published from `login-page/` by `.github/workflows/pages.yml`. Do not use Clay for sign-in. Clay builds a local `data:` page, and an OAuth redirect cannot return to it.
 - `package.json`: add `configurable` to `capabilities`. Declare every AppMessage key in `messageKeys`.
 
 **Watchapp screens**
@@ -242,7 +242,7 @@ Status as of Nov 1, 2026: ✅ done, ⏳ waiting on someone, 🔲 not started.
 
 1. ✅ Scaffold with `pebble new-project --ai`. Set `targetPlatforms` and add `configurable`.
 2. ⏳ Register a Planning Center OAuth app. Set the redirect URI to the hosted login page. Needs an Organization Administrator.
-3. ✅ Build the static login page. It relays `code` and `state` to `pebblejs://close#`. Not hosted yet.
+3. ✅ Build the static login page. It relays `code` and `state` to `pebblejs://close#`. Hosted on GitHub Pages.
 4. ✅ Build PKCE sign-in in PebbleKit JS. Not yet confirmed against Planning Center (needs steps 2 and 3).
 5. ✅ Build the token refresh on HTTP 401, and build sign-out.
 6. ✅ Build the `JSReady` handshake and an AppMessage helper with timeout and retry.
@@ -262,10 +262,10 @@ Answered during the build:
 - ~~The exact scheduling confirmation endpoint and payload.~~ See the endpoint table.
 - ~~The Pebble platform targets.~~ C, all seven platforms.
 - ~~The OAuth scopes needed for Services and for scheduling.~~ `services` only.
+- ~~Where to host the login page.~~ GitHub Pages: `https://rinvenom.github.io/pco-pebble/`. The redirect URI must match `LOGIN_URL` in `config.js` exactly, including the trailing slash.
 
 Still open:
 
-- Where to host the login page. The redirect URI must match `LOGIN_URL` in `config.js` exactly, including the trailing slash.
 - The OAuth client ID, and who registers the app.
 - The app name. The build uses "PCO Services". A name that does not look like an official Planning Center app may be safer for the App Store.
 - Whether the token endpoint accepts requests from Android PebbleKit JS. It runs in a hidden WebView, where browser CORS rules can apply. Planning Center documents a browser-only PKCE demo, so this is expected to work.

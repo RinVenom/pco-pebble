@@ -12,15 +12,16 @@ Spec: `../Pebble Planning Center App — Design Document.md`.
 1. **Register a public OAuth app.** An Organization Administrator signs in at
    https://api.planningcenteronline.com/oauth/applications and creates one
    OAuth application. PKCE is required for public apps.
-   - Redirect URI: the exact HTTPS URL of the login page (step 2), including
-     the trailing slash.
+   - Redirect URI: `https://rinvenom.github.io/pco-pebble/` (exactly, with
+     the trailing slash).
    - Scope used: `services`.
-2. **Host the login page.** Put `../login-page/index.html` on any HTTPS static
-   host, for example GitHub Pages (`https://<user>.github.io/<repo>/`).
-   The page holds no secret.
-3. **Fill in `src/pkjs/config.js`**: `CLIENT_ID`, `LOGIN_URL` (same URL as the
-   redirect URI, character for character) and `USER_AGENT` (app name plus a
-   contact; Planning Center can reject requests without one).
+2. **Login page.** Already hosted on GitHub Pages at
+   https://rinvenom.github.io/pco-pebble/. The workflow
+   `../.github/workflows/pages.yml` republishes `../login-page/` on every push
+   to `main` that changes it. The page holds no secret.
+3. **Fill in `CLIENT_ID` in `src/pkjs/config.js`.** `LOGIN_URL` and
+   `USER_AGENT` are already set. `LOGIN_URL` must match the redirect URI
+   character for character.
 4. Keep `DEMO_MODE: false`.
 
 ## Build and run
