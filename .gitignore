@@ -1,0 +1,6 @@
+.DS_Store
+pco-services/build/
+pco-services/node_modules/
+pco-services/.lock-waf*
+pco-services/pebble-logs.txt
+pco-services/.pebble-logs.pid

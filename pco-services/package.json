@@ -1,0 +1,31 @@
+{
+  "name": "pco-services",
+  "author": "John",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "PCO Services",
+    "uuid": "ae0d63f7-5e40-4289-b6e3-c87299892710",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": ["aplite", "basalt", "chalk", "diorite", "emery", "flint", "gabbro"],
+    "watchapp": { "watchface": false },
+    "capabilities": ["configurable"],
+    "messageKeys": [
+      "JSReady", "AuthState", "Request", "ReqId", "Error", "RetryAfter",
+      "Index", "Count", "Section", "ServiceTypeId", "PlanId", "ItemId",
+      "Title", "Subtitle", "Kind", "LastServiceType",
+      "LiveState", "LiveCurTitle", "LiveNextTitle", "LiveElapsed", "LiveLength",
+      "VibeOnChange", "Accept", "Result"
+    ],
+    "resources": {
+      "media": [
+        { "type": "bitmap", "name": "IMAGE_MENU_ICON", "file": "images/menu_icon.png", "menuIcon": true },
+        { "type": "bitmap", "name": "IMAGE_ACCEPT", "file": "images/accept.png" },
+        { "type": "bitmap", "name": "IMAGE_DECLINE", "file": "images/decline.png" }
+      ]
+    }
+  }
+}

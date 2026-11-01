@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>PCO Services for Pebble</title>
+<style>
+  :root { --bg: #f6f7f9; --card: #fff; --text: #1d2330; --muted: #5d6677; --accent: #2266d4; --border: #dde1e8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171c; --card: #1d2129; --text: #eef1f5; --muted: #a2abba; --accent: #6aa1ff; --border: #323845; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.45 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 440px; margin: 0 auto; padding: 32px 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 20px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  button { width: 100%; border: 0; border-radius: 10px; padding: 14px; font: inherit; font-weight: 600; cursor: pointer; margin-top: 10px; }
+  .primary { background: var(--accent); color: #fff; }
+  .secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+  .danger { background: transparent; color: #d33; border: 1px solid var(--border); }
+  label { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 8px 0 6px; }
+  input[type=checkbox] { width: 22px; height: 22px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <section id="signin" hidden>
+      <h1>Sign in to Planning Center</h1>
+      <p>Sign in with your own Planning Center account to see your plans on your watch. Your password goes only to Planning Center.</p>
+      <button class="primary" id="go">Continue to Planning Center</button>
+    </section>
+
+    <section id="manage" hidden>
+      <h1>PCO Services</h1>
+      <p>You are signed in to Planning Center on this phone.</p>
+      <label>Vibrate when the live item changes <input type="checkbox" id="vibe"></label>
+      <button class="primary" id="save">Save</button>
+      <button class="secondary" id="switch">Sign in as someone else</button>
+      <button class="danger" id="signout">Sign out</button>
+    </section>
+
+    <section id="working">
+      <h1>One moment…</h1>
+      <p id="msg">Returning to the Pebble app.</p>
+    </section>
+  </div>
+</main>
+<script>
+(function () {
+  // This page holds no secret and never sees a token. It sends the user to
+  // Planning Center, then hands the one-time code back to PebbleKit JS,
+  // which exchanges it with the PKCE verifier only the phone app knows.
+  var AUTHORIZE_URL = 'https://api.planningcenteronline.com/oauth/authorize';
+  var REDIRECT_URI = location.origin + location.pathname; // register this exact URL
+  var params = new URLSearchParams(location.search);
+
+  function show(id) {
+    ['signin', 'manage', 'working'].forEach(function (s) {
+      document.getElementById(s).hidden = s !== id;
+    });
+  }
+
+  // The Pebble emulator passes return_to in place of pebblejs://close#.
+  // Only allow the Pebble scheme or a local address, so a crafted link
+  // cannot send the code anywhere else.
+  function safeReturnTo(value) {
+    if (!value) return null;
+    if (value.indexOf('pebblejs://') === 0) return value;
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(value)) return value;
+    return null;
+  }
+
+  function closeWith(data) {
+    var base = 'pebblejs://close#';
+    try { base = sessionStorage.getItem('return_to') || base; } catch (e) {}
+    try { sessionStorage.removeItem('return_to'); } catch (e) {}
+    show('working');
+    location.replace(base + encodeURIComponent(JSON.stringify(data)));
+  }
+
+  function startAuthorize(selectAccount) {
+    var q = new URLSearchParams({
+      client_id: params.get('client_id') || '',
+      redirect_uri: REDIRECT_URI,
+      response_type: 'code',
+      scope: params.get('scope') || 'services',
+      code_challenge: params.get('code_challenge') || '',
+      code_challenge_method: 'S256',
+      state: params.get('state') || ''
+    });
+    if (selectAccount) q.set('prompt', 'select_account');
+    show('working');
+    document.getElementById('msg').textContent = 'Opening Planning Center…';
+    location.assign(AUTHORIZE_URL + '?' + q.toString());
+  }
+
+  function vibeValue() { return document.getElementById('vibe').checked; }
+
+  // 1. Back from Planning Center with ?code=…&state=… or ?error=…
+  if (params.has('code') || params.has('error')) {
+    // Remove the code from the address bar and history right away.
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    if (params.has('code')) {
+      closeWith({ action: 'auth', code: params.get('code'), state: params.get('state') || '' });
+    } else {
+      closeWith({ action: 'error', error: params.get('error') });
+    }
+    return;
+  }
+
+  // 2. Opened by PebbleKit JS.
+  var returnTo = safeReturnTo(params.get('return_to'));
+  try {
+    if (returnTo) sessionStorage.setItem('return_to', returnTo);
+    else sessionStorage.removeItem('return_to');
+  } catch (e) {}
+
+  if (!params.get('client_id') || !params.get('code_challenge') || !params.get('state')) {
+    show('working');
+    document.querySelector('#working h1').textContent = 'Open this from the Pebble app';
+    document.getElementById('msg').textContent = 'In the Pebble app on your phone, open the settings for PCO Services.';
+    return;
+  }
+
+  if (params.get('mode') === 'manage') {
+    document.getElementById('vibe').checked = params.get('vibe') === '1';
+    document.getElementById('save').onclick = function () { closeWith({ action: 'settings', vibe: vibeValue() }); };
+    document.getElementById('switch').onclick = function () { startAuthorize(true); };
+    document.getElementById('signout').onclick = function () { closeWith({ action: 'signout', vibe: vibeValue() }); };
+    show('manage');
+  } else {
+    document.getElementById('go').onclick = function () { startAuthorize(false); };
+    show('signin');
+  }
+})();
+</script>
+</body>
+</html>
