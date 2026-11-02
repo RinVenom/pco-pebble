@@ -57,7 +57,8 @@ answers with one message per list row (`Index`, `Count`, fields) or an
 
 - Main menu: SELECT opens a plan; **long-press SELECT** opens its live view.
   The top row shows the cache age; SELECT on it refreshes.
-- Plan order: first row opens the live view.
+- Plan order: first row opens the live view. Section headers are skipped,
+  and a selected item whose text is too long scrolls sideways (not on aplite).
 - Requests: UP accepts, DOWN declines.
 
 ## Settings page

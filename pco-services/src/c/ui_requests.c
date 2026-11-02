@@ -58,10 +58,14 @@ static void detail_draw(Layer *layer, GContext *ctx) {
   // "Nov 8 · Acoustic Guitar" -> date and position on their own lines.
   char sub[SUBTITLE_LEN + 2];
   data_copy(sub, s_selected.subtitle, sizeof(sub));
-  char *dot = strstr(sub, " \xC2\xB7 ");
-  if (dot) {
-    *dot = '\n';
-    memmove(dot + 1, dot + 4, strlen(dot + 4) + 1);
+  // A plain loop, not strstr(): strstr adds about 1 kB of code, which aplite
+  // cannot spare.
+  for (char *p = sub; p[0] && p[1] && p[2] && p[3]; p++) {
+    if (p[0] == ' ' && p[1] == '\xC2' && p[2] == '\xB7' && p[3] == ' ') {
+      *p = '\n';
+      memmove(p + 1, p + 4, strlen(p + 4) + 1);
+      break;
+    }
   }
   if (text_bottom > y) {
     graphics_draw_text(ctx, sub, body_font, GRect(x, y - 2, w, text_bottom - y),

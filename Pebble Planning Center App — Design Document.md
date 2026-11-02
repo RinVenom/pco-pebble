@@ -135,7 +135,7 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 
 1. Sign-in prompt. A full-screen message that tells the user to open the app settings in the Pebble mobile app. Show it when no token is present. BACK leaves the app.
 2. Main menu (`MenuLayer`). Lists upcoming plans by service type, up to 4 per type. The top row shows the cache age ("Updated 5m ago", "Offline · 2h ago"); SELECT on it refreshes. Long-press SELECT on a plan opens its live view. A last "More" section opens Requests.
-3. Plan order view (`MenuLayer`). The first row opens the live view. Headers show as gray dividers, and the cursor skips over them when scrolling. Subtitles show key, length and pre/post-service.
+3. Plan order view (`MenuLayer`). The first row opens the live view. Headers show as gray dividers, and the cursor skips over them when scrolling. Subtitles show key, length and pre/post-service. When the selected item's title or subtitle is too wide, it scrolls sideways: a 1 second pause, scroll to the end, a pause, then back to the start, three times, then it rests. Not on aplite, which has no memory to spare; long text there ends in "…".
 4. Live view. The current item (28 pt, up to 2 lines), time left in the item counting down, "left of 4:30" or "over 4:30" in red, a progress bar, and the next item at the bottom. A `StatusBarLayer` shows the time of day. "Reconnecting..." replaces the label when the last good poll is over 20 seconds old.
 5. Requests view (nice-to-have). Pending requests, then a detail screen with an `ActionBarLayer`: UP accepts, DOWN declines. The detail text is black and bold, with larger fonts on Time 2 and Round 2, and the date and position on separate lines. Rectangular screens show an "Up: accept / Down: decline" hint at the bottom; round screens rely on the action bar icons. A result dialog closes itself after 2 seconds.
 
@@ -153,6 +153,7 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 - Each request carries a `ReqId`. The watch ignores replies for an older request, and PebbleKit JS stops sending a list when a newer request arrives.
 - The watch sends the list size it can hold (`Count`), and PebbleKit JS cuts strings to the watch buffer sizes. The watch also cuts at a UTF-8 character boundary.
 - List sizes: 24 plans, 60 items, 12 requests. On aplite: 8, 16 and 4.
+- Aplite has about 5 kB of heap left. Check `Free RAM available (heap)` for aplite after each build, and open the plan order, live view and a request detail in the aplite emulator. Avoid C library calls that pull in large code, such as `strstr()` (about 1 kB).
 - Use a timeout and retry for each watch message. Retry after about 1 second, then back off.
 
 **Live mode polling**
@@ -292,3 +293,4 @@ Still open:
 | Service type filter | Not in spec | Checklist on the settings page; hidden types are not fetched | Users asked to choose which service types the watch shows. |
 | Plan order headers | Selectable | Skipped by the cursor | Headers are dividers, not choices. |
 | Request detail text | 18 pt, gray hint | Bold black; 28/24 pt on Time 2 and Round 2 | Hard to read on a Time 2. |
+| Long plan item text | Cut with "…" | Scrolls sideways when selected (not on aplite) | Long titles could not be read. |
