@@ -106,6 +106,55 @@ static void draw_small_row(GContext *ctx, const Layer *cell, const char *text, b
                      PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft), NULL);
 }
 
+// Schedule status badge, drawn just after the plan's date: a small filled
+// circle with a glyph. Green check = accepted, red X = declined,
+// amber ? = requested (not answered). No badge when not scheduled.
+// Black and white watches draw it in the text color.
+static void draw_status_badge(GContext *ctx, const Layer *cell, const PlanRow *p, bool selected) {
+  if (p->status == STATUS_NONE) return;
+  GRect b = layer_get_bounds(cell);
+  int d = b.size.w >= 180 ? 16 : 14;  // diameter
+  GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+  int tw = graphics_text_layout_get_content_size(p->title, title_font, GRect(0, 0, b.size.w, 30),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft).w;
+  // Same title position as menu_cell_basic_draw (it indents more on Time 2).
+  int title_x = PBL_IF_ROUND_ELSE((b.size.w - tw) / 2, b.size.w >= 200 ? 10 : 5);
+  // Round menus show the subtitle only on the selected row.
+  bool sub = p->subtitle[0] != '\0' && PBL_IF_ROUND_ELSE(selected, true);
+  int title_mid = sub ? PBL_IF_ROUND_ELSE(b.size.h / 2 - 10, 13) : b.size.h / 2 + 1;
+  GPoint c = GPoint(title_x + tw + 5 + d / 2, title_mid);
+  if (c.x + d / 2 > b.size.w - 2) return;  // no room: leave it out
+
+  GColor fill = PBL_IF_COLOR_ELSE(
+      p->status == STATUS_ACCEPTED ? GColorIslamicGreen :
+      p->status == STATUS_DECLINED ? GColorRed : GColorChromeYellow,
+      selected ? GColorWhite : GColorBlack);
+  GColor mark = PBL_IF_COLOR_ELSE(p->status == STATUS_REQUESTED ? GColorBlack : GColorWhite,
+                                  selected ? GColorBlack : GColorWhite);
+  if (PBL_IF_COLOR_ELSE(selected, false)) {
+    graphics_context_set_fill_color(ctx, GColorWhite);  // ring so it reads on the highlight
+    graphics_fill_circle(ctx, c, d / 2 + 1);
+  }
+  graphics_context_set_fill_color(ctx, fill);
+  graphics_fill_circle(ctx, c, d / 2);
+
+  int r = d / 4 + 1;  // glyph half-size
+  graphics_context_set_stroke_color(ctx, mark);
+  graphics_context_set_stroke_width(ctx, 2);
+  if (p->status == STATUS_ACCEPTED) {
+    graphics_draw_line(ctx, GPoint(c.x - r, c.y), GPoint(c.x - r / 3, c.y + r - 1));
+    graphics_draw_line(ctx, GPoint(c.x - r / 3, c.y + r - 1), GPoint(c.x + r, c.y - r + 1));
+  } else if (p->status == STATUS_DECLINED) {
+    graphics_draw_line(ctx, GPoint(c.x - r + 1, c.y - r + 1), GPoint(c.x + r - 1, c.y + r - 1));
+    graphics_draw_line(ctx, GPoint(c.x - r + 1, c.y + r - 1), GPoint(c.x + r - 1, c.y - r + 1));
+  } else {
+    graphics_context_set_text_color(ctx, mark);
+    graphics_draw_text(ctx, "?", fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                       GRect(c.x - d / 2, c.y - 10, d, 16), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  }
+  graphics_context_set_stroke_width(ctx, 1);
+}
+
 static void draw_row(GContext *ctx, const Layer *cell, MenuIndex *idx, void *data) {
   bool selected = menu_cell_layer_is_highlighted(cell);
   if (idx->section == 0) {
@@ -123,6 +172,7 @@ static void draw_row(GContext *ctx, const Layer *cell, MenuIndex *idx, void *dat
   }
   PlanRow *p = &g_data.plans[s_group_start[g] + idx->row];
   menu_cell_basic_draw(ctx, cell, p->title, p->subtitle[0] ? p->subtitle : NULL, NULL);
+  draw_status_badge(ctx, cell, p, selected);
 }
 
 static PlanRow *plan_at(MenuIndex *idx) {

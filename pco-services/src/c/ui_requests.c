@@ -24,7 +24,7 @@ static bool s_sent_accept;
 // get bigger fonts; the button hint sits at the bottom.
 static void detail_draw(Layer *layer, GContext *ctx) {
   GRect b = layer_get_unobstructed_bounds(layer);
-  bool large = b.size.h >= 200;  // Time 2, Round 2
+  bool large = ui_use_large_text(b.size.h);  // Time 2, Round 2
   int inset = PBL_IF_ROUND_ELSE(b.size.w / 7, 6);
   int x = b.origin.x + inset;
   int w = b.size.w - 2 * inset + PBL_IF_ROUND_ELSE(0, 2);
@@ -138,6 +138,7 @@ static void detail_comm_handler(RequestType type, CommEvent event, CommError cod
   s_sending = false;
   if (event == COMM_DONE) {
     remove_request(s_selected.id);
+    plans_window_refresh();  // runs on return to the main menu: updates its status badges
     window_stack_remove(s_detail_window, false);
     message_show(MSG_RESULT, s_sent_accept ? "Accepted" : "Declined",
                  s_sent_accept ? "Thanks for serving!" : "Your scheduler will be told.", 2000);

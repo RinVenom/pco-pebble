@@ -3,13 +3,24 @@
 AppData g_data;
 
 // Persistent storage keys. Bump STORAGE_VERSION when a stored layout changes.
-#define STORAGE_VERSION 1
+#define STORAGE_VERSION 2  // 2: PlanRow gained status
 #define KEY_VERSION 1
 #define KEY_PLAN_COUNT 2
 #define KEY_PLANS_UPDATED 3
 #define KEY_LAST_SERVICE_TYPE 4
 #define KEY_VIBE 5
 #define KEY_PLAN_BASE 100  // KEY_PLAN_BASE + i holds plans[i]
+
+// Aplite, basalt, chalk and diorite allow 4 kB of storage per app. 24 plans
+// (about 3.3 kB plus per-entry overhead) could run out, so keep the first
+// 16 there. Flint, emery and gabbro allow 1 MB.
+#define SMALL_STORAGE_PLANS 16
+
+static int plans_to_save(void) {
+  int n = g_data.plan_count;
+  if (persist_get_max_size() <= 4096 && n > SMALL_STORAGE_PLANS) n = SMALL_STORAGE_PLANS;
+  return n;
+}
 
 
 void data_copy(char *dst, const char *src, size_t n) {
@@ -72,11 +83,17 @@ void data_save(void) {
   // Only plans that came from the phone in this session are written.
   if (!g_data.plans_from_cache && g_data.plans_updated != 0) {
     int old = persist_exists(KEY_PLAN_COUNT) ? persist_read_int(KEY_PLAN_COUNT) : 0;
-    for (int i = 0; i < g_data.plan_count; i++) {
-      persist_write_data(KEY_PLAN_BASE + i, &g_data.plans[i], sizeof(PlanRow));
+    int n = plans_to_save();
+    int saved = 0;
+    for (int i = 0; i < n; i++) {
+      if (persist_write_data(KEY_PLAN_BASE + i, &g_data.plans[i], sizeof(PlanRow)) != (int)sizeof(PlanRow)) {
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Saved %d of %d plans", saved, n);
+        break;  // out of storage: keep what fit
+      }
+      saved++;
     }
-    if (old > g_data.plan_count) delete_plan_keys(g_data.plan_count, old);
-    persist_write_int(KEY_PLAN_COUNT, g_data.plan_count);
+    if (old > saved) delete_plan_keys(saved, old);
+    persist_write_int(KEY_PLAN_COUNT, saved);
     persist_write_int(KEY_PLANS_UPDATED, (int32_t)g_data.plans_updated);
   }
   persist_write_string(KEY_LAST_SERVICE_TYPE, g_data.last_service_type);

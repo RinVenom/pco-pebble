@@ -13,3 +13,13 @@ void ui_draw_header(GContext *ctx, const Layer *cell, const char *text) {
                      GTextOverflowModeTrailingEllipsis,
                      PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft), NULL);
 }
+
+bool ui_use_large_text(int screen_height) {
+#if PBL_DISPLAY_HEIGHT < 200
+  return false;  // small screens: compiled out
+#else
+  if (screen_height < 200) return false;
+  // On Time 2 and Round 2 the default Text Size (Medium) reports Large.
+  return preferred_content_size() >= PreferredContentSizeLarge;
+#endif
+}

@@ -10,6 +10,9 @@ var BASE = 'https://api.planningcenteronline.com/services/v2';
 var ERR = auth.ERR;
 var PLANS_PER_TYPE = 4;
 
+// The user's schedule status for a plan, shared with the watch (data.h).
+var STATUS = { NONE: 0, REQUESTED: 1, ACCEPTED: 2, DECLINED: 3 };
+
 // Item kinds shared with the watch (see data.h).
 var KIND = { ITEM: 0, SONG: 1, HEADER: 2, MEDIA: 3 };
 
@@ -65,6 +68,40 @@ function startOfTodayIso() {
   return d.toISOString();
 }
 
+// The user's schedule status for each upcoming plan: { planId: STATUS }.
+// One person can hold several positions on a plan; an open request wins,
+// then an accepted one, then declined. Never fails: on any error the plans
+// simply show no status. Declined schedules are only returned with the
+// with_declined filter. If the API rejects the combined filter, ask again
+// without it, so requested and accepted still show.
+function getScheduleStatuses(after, cb) {
+  getPersonId(function (err, pid) {
+    if (err) { cb({}); return; }
+    var base = '/people/' + pid + '/schedules?per_page=100&after=' + after + '&filter=';
+    api('GET', base + 'with_declined,after', null, function (e, json) {
+      if (!e) { cb(statusMap(json)); return; }
+      if (e === ERR.NETWORK || e === ERR.AUTH || e === ERR.RATE_LIMIT) { cb({}); return; }
+      api('GET', base + 'after', null, function (e2, json2) { cb(e2 ? {} : statusMap(json2)); });
+    });
+  });
+}
+
+function statusMap(json) {
+  var rank = { U: 3, C: 2, D: 1 };
+  var toStatus = { U: STATUS.REQUESTED, C: STATUS.ACCEPTED, D: STATUS.DECLINED };
+  var best = {};
+  ((json && json.data) || []).forEach(function (s) {
+    var rel = s.relationships && s.relationships.plan && s.relationships.plan.data;
+    var code = String((s.attributes && s.attributes.status) || '').toUpperCase().charAt(0);
+    if (!rel || !rank[code]) return;
+    var id = String(rel.id);
+    if (!best[id] || rank[code] > rank[best[id]]) best[id] = code;
+  });
+  var out = {};
+  for (var id in best) out[id] = toStatus[best[id]];
+  return out;
+}
+
 // Upcoming plans grouped by service type. The service type the user opened
 // last comes first. "after midnight today" keeps a service that is already
 // running in the list, which filter=future may drop once it starts.
@@ -79,6 +116,7 @@ function getPlans(lastServiceTypeId, cap, cb) {
     }));
     var types = allTypes.filter(function (t) { return !prefs.isHidden(t.id); });
     var byType = {};
+    var statuses = {};
     var firstErr = 0, firstRetry = 0;
     var after = encodeURIComponent(startOfTodayIso());
     var tasks = types.map(function (t) {
@@ -90,6 +128,9 @@ function getPlans(lastServiceTypeId, cap, cb) {
           done();
         });
       };
+    });
+    tasks.push(function (done) {
+      getScheduleStatuses(after, function (map) { statuses = map; done(); });
     });
     runLimited(tasks, 4, function () {
       // Show what loaded. Fail only if nothing did.
@@ -110,7 +151,8 @@ function getPlans(lastServiceTypeId, cap, cb) {
             serviceTypeId: String(t.id),
             planId: String(p.id),
             title: a.short_dates || a.dates || 'No date',
-            subtitle: a.title || a.series_title || (a.items_count ? a.items_count + ' items' : '')
+            subtitle: a.title || a.series_title || (a.items_count ? a.items_count + ' items' : ''),
+            status: statuses[String(p.id)] || STATUS.NONE
           });
         });
       });

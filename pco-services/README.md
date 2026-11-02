@@ -56,7 +56,9 @@ answers with one message per list row (`Index`, `Count`, fields) or an
 ## Buttons
 
 - Main menu: SELECT opens a plan; **long-press SELECT** opens its live view.
-  The top row shows the cache age; SELECT on it refreshes.
+  The top row shows the cache age; SELECT on it refreshes. A badge after the
+  date shows your status: **?** requested, **✓** accepted, **✕** declined,
+  none if you are not scheduled.
 - Plan order: first row opens the live view. Section headers are skipped,
   and a selected item whose text is too long scrolls sideways (not on aplite).
 - Requests: UP accepts, DOWN declines.

@@ -92,7 +92,8 @@ function handleRequest(p) {
           ServiceTypeId: cut(r.serviceTypeId, MAX.ID),
           PlanId: cut(r.planId, MAX.ID),
           Title: cut(r.title, MAX.TITLE),
-          Subtitle: cut(r.subtitle, MAX.SUBTITLE)
+          Subtitle: cut(r.subtitle, MAX.SUBTITLE),
+          Status: r.status || 0
         };
       }), reqId);
     });

@@ -49,7 +49,8 @@ static int draw_block(GContext *ctx, const char *text, GFont font, GRect box, GT
 
 static void draw(Layer *layer, GContext *ctx) {
   GRect b = layer_get_unobstructed_bounds(layer);
-  bool large = b.size.w >= 180;
+  // The big clock needs a tall screen to leave room for a two-line item name.
+  bool large = ui_use_large_text(layer_get_bounds(window_get_root_layer(s_window)).size.h);
   int inset = PBL_IF_ROUND_ELSE(b.size.w / 9, 6);
   int x = b.origin.x + inset;
   int w = b.size.w - 2 * inset;
@@ -83,12 +84,13 @@ static void draw(Layer *layer, GContext *ctx) {
   bool over = has_length && remaining < 0;
   bool stale = (time(NULL) - l->last_update) > STALE_SECONDS;
 
-  // "Next" is anchored to the bottom: two lines on large rectangles, else one.
+  // "Next" is anchored to the bottom: two lines on tall rectangles (Time 2)
+  // with large text, else one, so the current item keeps its room.
   int next_h = 0;
   if (l->next[0]) {
     char next[TITLE_LEN + 8];
     snprintf(next, sizeof(next), "Next: %s", l->next);
-    next_h = 22 * PBL_IF_ROUND_ELSE(1, large ? 2 : 1);
+    next_h = 22 * PBL_IF_ROUND_ELSE(1, (large && b.size.h >= 200) ? 2 : 1);
     graphics_context_set_text_color(ctx, MUTED_COLOR);
     // The circle is narrower near the bottom of round screens.
     int nx = PBL_IF_ROUND_ELSE(b.size.w / 10, 0);
@@ -109,8 +111,18 @@ static void draw(Layer *layer, GContext *ctx) {
   int bar_h = has_length ? 8 : 0;
   int avail = bottom - top - next_h;
   int title_max = avail - (gap + clock_h + label_h + bar_h);
-  if (title_max < 30 && bar_h) { title_max += bar_h; bar_h = 0; }  // drop the bar before the title
   if (title_max > 62) title_max = 62;
+  // The item name matters more than the bar (the label already says how
+  // much is left): drop the bar when the name needs the room.
+  int title_need = graphics_text_layout_get_content_size(l->current, title_font,
+      GRect(0, 0, w, 62), GTextOverflowModeTrailingEllipsis, align).h;
+  if (title_need > title_max && bar_h) {
+    title_max += bar_h;
+    bar_h = 0;
+    if (title_max > 62) title_max = 62;
+  }
+  // A few pixels short (Time Round): take them from the spacing.
+  if (title_need > title_max && title_need - title_max <= 4) title_max = title_need;
   if (title_max < 30) title_max = 30;
   int title_h = graphics_text_layout_get_content_size(l->current, title_font,
       GRect(0, 0, w, title_max), GTextOverflowModeTrailingEllipsis, align).h;

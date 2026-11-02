@@ -26,13 +26,22 @@ typedef enum {
   KIND_MEDIA = 3,
 } ItemKind;
 
+// The user's schedule status for a plan (same numbers in pco.js).
+typedef enum {
+  STATUS_NONE = 0,       // not scheduled: no icon
+  STATUS_REQUESTED = 1,  // asked, not answered yet
+  STATUS_ACCEPTED = 2,
+  STATUS_DECLINED = 3,
+} PlanStatus;
+
 typedef struct {
   char section[SECTION_LEN];
   char service_type_id[ID_LEN];
   char plan_id[ID_LEN];
   char title[TITLE_LEN];
   char subtitle[SUBTITLE_LEN];
-} PlanRow;  // 136 bytes, under PERSIST_DATA_MAX_LENGTH (256)
+  uint8_t status;  // PlanStatus
+} PlanRow;  // 137 bytes, under PERSIST_DATA_MAX_LENGTH (256)
 
 typedef struct {
   char id[ID_LEN];

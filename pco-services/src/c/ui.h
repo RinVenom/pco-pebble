@@ -10,6 +10,12 @@
 
 void ui_draw_header(GContext *ctx, const Layer *cell, const char *text);
 
+// Whether a screen should use its larger fonts: only on tall screens (Time 2,
+// Round 2), and not when the user has picked a smaller Text Size there
+// (Settings > Notifications > Text Size). Smaller screens already use the
+// largest fonts that fit, so a larger setting changes nothing there.
+bool ui_use_large_text(int screen_height);
+
 // Full-screen messages. One is shown at a time.
 typedef enum {
   MSG_SIGN_IN,     // no token: tell the user to open the app settings

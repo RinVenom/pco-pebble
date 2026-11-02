@@ -168,6 +168,9 @@ static bool store_row(DictionaryIterator *iter) {
         data_copy(p->plan_id, str_of(iter, MESSAGE_KEY_PlanId), ID_LEN);
         data_copy(p->title, str_of(iter, MESSAGE_KEY_Title), TITLE_LEN);
         data_copy(p->subtitle, str_of(iter, MESSAGE_KEY_Subtitle), SUBTITLE_LEN);
+        int32_t status = STATUS_NONE;
+        int_of(iter, MESSAGE_KEY_Status, &status);
+        p->status = (status >= STATUS_NONE && status <= STATUS_DECLINED) ? (uint8_t)status : STATUS_NONE;
       }
       if (index + 1 >= count) {
         g_data.plans_updated = time(NULL);

@@ -7,11 +7,11 @@ var prefs = require('./prefs');
 var KIND = { ITEM: 0, SONG: 1, HEADER: 2, MEDIA: 3 };
 
 var PLANS = [
-  { section: 'Sunday Morning', serviceTypeId: '101', planId: '9001', title: 'Nov 1', subtitle: 'Gratitude, Week 1' },
-  { section: 'Sunday Morning', serviceTypeId: '101', planId: '9002', title: 'Nov 8', subtitle: 'Gratitude, Week 2' },
-  { section: 'Sunday Morning', serviceTypeId: '101', planId: '9003', title: 'Nov 15', subtitle: 'Gratitude, Week 3' },
-  { section: 'Youth Night', serviceTypeId: '102', planId: '9101', title: 'Nov 4', subtitle: 'Worship night' },
-  { section: 'Youth Night', serviceTypeId: '102', planId: '9102', title: 'Nov 11', subtitle: '' }
+  { section: 'Sunday Morning', serviceTypeId: '101', planId: '9001', title: 'Nov 1', subtitle: 'Gratitude, Week 1', status: 2 },
+  { section: 'Sunday Morning', serviceTypeId: '101', planId: '9002', title: 'Nov 8', subtitle: 'Gratitude, Week 2', status: 1 },
+  { section: 'Sunday Morning', serviceTypeId: '101', planId: '9003', title: 'Nov 15', subtitle: 'Gratitude, Week 3', status: 0 },
+  { section: 'Youth Night', serviceTypeId: '102', planId: '9101', title: 'Nov 4', subtitle: 'Worship night', status: 3 },
+  { section: 'Youth Night', serviceTypeId: '102', planId: '9102', title: 'Nov 11', subtitle: '', status: 1 }
 ];
 
 var ITEMS = [
@@ -27,8 +27,8 @@ var ITEMS = [
 ];
 
 var REQUESTS = [
-  { id: '7001', title: 'Sunday Morning', subtitle: 'Nov 8 · Acoustic Guitar' },
-  { id: '7002', title: 'Youth Night', subtitle: 'Nov 11 · Sound' }
+  { id: '7001', planId: '9002', title: 'Sunday Morning', subtitle: 'Nov 8 · Acoustic Guitar' },
+  { id: '7002', planId: '9102', title: 'Youth Night', subtitle: 'Nov 11 · Sound' }
 ];
 
 // The demo service started 95 seconds into "Come Thou Fount" when JS loaded.
@@ -67,7 +67,11 @@ module.exports = {
   },
   respond: function (id, accept, cb) {
     later(function () {
-      REQUESTS = REQUESTS.filter(function (r) { return r.id !== id; });
+      REQUESTS = REQUESTS.filter(function (r) {
+        if (r.id !== id) return true;
+        PLANS.forEach(function (p) { if (p.planId === r.planId) p.status = accept ? 2 : 3; });
+        return false;
+      });
       cb(0);
     });
   }

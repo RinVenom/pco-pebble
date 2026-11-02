@@ -108,6 +108,7 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 | Live controller state | `GET /service_types/{id}/plans/{id}/live?include=current_item_time,next_item_time` |
 | Current person | `GET /me` |
 | Pending requests | `GET /people/{person_id}/schedules?filter=future` (keep `status` "U") |
+| Status badges on plans | `GET /people/{person_id}/schedules?filter=with_declined,after&after=<midnight today>&per_page=100`; `relationships.plan.data.id` links to the plan, `status` is U, C or D. Declined schedules only come back with `with_declined`. Combining filters is not documented, so on a 4xx the app asks again with `filter=after` (no declined badges). Still to confirm against a real account. |
 | Accept a request | `POST /people/{person_id}/schedules/{id}/accept` with body `{}` |
 | Decline a request | `POST /people/{person_id}/schedules/{id}/decline` with `{"data":{"type":"ScheduleDecline","attributes":{"reason":""}}}` |
 
@@ -134,7 +135,7 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 **Watchapp screens**
 
 1. Sign-in prompt. A full-screen message that tells the user to open the app settings in the Pebble mobile app. Show it when no token is present. BACK leaves the app.
-2. Main menu (`MenuLayer`). Lists upcoming plans by service type, up to 4 per type. The top row shows the cache age ("Updated 5m ago", "Offline · 2h ago"); SELECT on it refreshes. Long-press SELECT on a plan opens its live view. A last "More" section opens Requests.
+2. Main menu (`MenuLayer`). Lists upcoming plans by service type, up to 4 per type. The top row shows the cache age ("Updated 5m ago", "Offline · 2h ago"); SELECT on it refreshes. Long-press SELECT on a plan opens its live view. A last "More" section opens Requests. A small badge after a plan's date shows the user's schedule status: amber "?" = requested (not answered), green check = accepted, red X = declined, no badge = not scheduled. Black and white watches draw the same glyphs in black, so the shape carries the meaning, not only the color. Answering a request refreshes the list when the user returns to it.
 3. Plan order view (`MenuLayer`). The first row opens the live view. Headers show as gray dividers, and the cursor skips over them when scrolling. Subtitles show key, length and pre/post-service. When the selected item's title or subtitle is too wide, it scrolls sideways: a 1 second pause, scroll to the end, a pause, then back to the start, three times, then it rests. Not on aplite, which has no memory to spare; long text there ends in "…".
 4. Live view. The current item (28 pt, up to 2 lines), time left in the item counting down, "left of 4:30" or "over 4:30" in red, a progress bar, and the next item at the bottom. A `StatusBarLayer` shows the time of day. "Reconnecting..." replaces the label when the last good poll is over 20 seconds old.
 5. Requests view (nice-to-have). Pending requests, then a detail screen with an `ActionBarLayer`: UP accepts, DOWN declines. The detail text is black and bold, with larger fonts on Time 2 and Round 2, and the date and position on separate lines. Rectangular screens show an "Up: accept / Down: decline" hint at the bottom; round screens rely on the action bar icons. A result dialog closes itself after 2 seconds.
@@ -192,7 +193,7 @@ These come from the Pebble developer guides: [Best Practices](https://developer.
 - Store a storage version number. Migrate or delete old data when the format changes.
 - Read and write storage at launch or exit, not during scrolling.
 - Remember the last service type the user opened. Open it first on the next launch. (The watch sends it as `LastServiceType`; PebbleKit JS lists that type first.)
-- Each cached plan row is 136 bytes. Sign-out deletes the cached plans on the watch.
+- Each cached plan row is 137 bytes (storage version 2 added the schedule status). On watches with 4 kB of storage the watch caches the first 16 plans, and stops if a write fails. Sign-out deletes the cached plans on the watch.
 - PebbleKit JS starts a fresh context on each launch. Keep state that must survive in `localStorage`.
 
 **Screens on every watch**
@@ -201,6 +202,8 @@ These come from the Pebble developer guides: [Best Practices](https://developer.
 - Use `PBL_ROUND`, `PBL_COLOR`, and the `PBL_IF_*_ELSE()` macros for shape and color. Prefer feature defines over `PBL_PLATFORM_*`.
 - Screen sizes: 144 × 168 (aplite, basalt, diorite, flint), 180 × 180 round (chalk), 200 × 228 (emery), 260 × 260 round (gabbro).
 - Use font size 28 for the current item. Use 18 or larger for other text.
+- Respect the Text Size setting (`preferred_content_size()`). The live view and request detail use their larger fonts only on tall screens (Time 2, Round 2) at the default or a larger Text Size; a smaller Text Size there gives the smaller fonts. Smaller screens already use the largest fonts that fit. Menus use the system cell drawing.
+- On short screens the live view drops the progress bar before it cuts the current item's name; the label under the clock still says how much time is left.
 
 **Battery**
 
@@ -303,3 +306,6 @@ Still open:
 | Request detail text | 18 pt, gray hint | Bold black; 28/24 pt on Time 2 and Round 2 | Hard to read on a Time 2. |
 | Long plan item text | Cut with "…" | Scrolls sideways when selected (not on aplite) | Long titles could not be read. |
 | Touch | Not in spec | System touch navigation on Time 2 and Round 2, plus half-bar taps on the request detail | Use the touchscreen; round action bar icons sit between the system's tap zones. |
+| Schedule status badges | Not in spec | Requested/accepted/declined badge on each main menu plan, from `/people/{id}/schedules` (`filter=with_declined,after`, falling back to `after`) | See at a glance which plans need an answer. |
+| Plan cache on 4 kB watches | All plans | First 16, write results checked | 24 rows plus overhead could exceed the 4 kB limit. |
+| Text Size | Not followed | Large fonts only on tall screens and not at a smaller Text Size | Content Size guide; the Time Round's big clock also cut the item name to one line. |
