@@ -61,6 +61,13 @@ answers with one message per list row (`Index`, `Count`, fields) or an
   and a selected item whose text is too long scrolls sideways (not on aplite).
 - Requests: UP accepts, DOWN declines.
 
+## Touch (Time 2 and Round 2)
+
+After waking the watch: swipe to scroll, tap a row to select it, tap it
+again to open it. On a request, tap the top half of the right-hand bar to
+accept and the bottom half to decline. See the design doc for how to send
+touches to the emulator.
+
 ## Settings page
 
 Signed in, the app's **Settings** in the Pebble app opens the same hosted

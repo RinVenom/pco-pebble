@@ -139,6 +139,14 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 4. Live view. The current item (28 pt, up to 2 lines), time left in the item counting down, "left of 4:30" or "over 4:30" in red, a progress bar, and the next item at the bottom. A `StatusBarLayer` shows the time of day. "Reconnecting..." replaces the label when the last good poll is over 20 seconds old.
 5. Requests view (nice-to-have). Pending requests, then a detail screen with an `ActionBarLayer`: UP accepts, DOWN declines. The detail text is black and bold, with larger fonts on Time 2 and Round 2, and the date and position on separate lines. Rectangular screens show an "Up: accept / Down: decline" hint at the bottom; round screens rely on the action bar icons. A result dialog closes itself after 2 seconds.
 
+**Touch (Time 2 and Round 2)**
+
+- The app opts in to the system's touch navigation (`app_touch_navigation_enable(true)`, built only where `PBL_TOUCH` is defined). Menus scroll by swipe. A tap on a row selects it; a tap on the selected row opens it. Touches only act after the user wakes the watch or presses a button.
+- Plan order: a tap on a section header that is more than one row away leaves the selection where it is. Buttons still skip headers.
+- Request detail: the system maps action bar taps to buttons by thirds, but the round action bar draws both icons in the middle third. The detail screen also subscribes to `TouchService` while it is shown: a tap on the bar accepts in the top half and declines in the bottom half. Drags and touches without an interaction session are ignored, so the system back swipe still works.
+- Not by touch: the long-press shortcut from a plan to its live view. The plan order's first row opens it instead.
+- Emulator testing: `pebble` has no touch command, and the QEMU monitor's `mouse_move` is relative, so it does not reach the absolute touch device. Start QEMU with a QMP port (`PEBBLE_QEMU_PATH` pointing at a wrapper that adds `-qmp tcp:127.0.0.1:4445,server=on,wait=off`) and send `input-send-event` with `abs` x/y in 0–32767 plus a left button press.
+
 **Data flow**
 
 - The watch waits for a `JSReady` message from PebbleKit JS before it sends any request.
@@ -294,3 +302,4 @@ Still open:
 | Plan order headers | Selectable | Skipped by the cursor | Headers are dividers, not choices. |
 | Request detail text | 18 pt, gray hint | Bold black; 28/24 pt on Time 2 and Round 2 | Hard to read on a Time 2. |
 | Long plan item text | Cut with "…" | Scrolls sideways when selected (not on aplite) | Long titles could not be read. |
+| Touch | Not in spec | System touch navigation on Time 2 and Round 2, plus half-bar taps on the request detail | Use the touchscreen; round action bar icons sit between the system's tap zones. |

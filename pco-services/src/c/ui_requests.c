@@ -84,6 +84,40 @@ static void send_response(bool accept) {
 static void accept_click(ClickRecognizerRef rec, void *ctx) { send_response(true); }
 static void decline_click(ClickRecognizerRef rec, void *ctx) { send_response(false); }
 
+#if defined(PBL_TOUCH)
+// Touch (Time 2, Round 2). The system turns taps on the action bar into
+// button presses by thirds, but the round action bar draws both icons near
+// the middle third, so tapping an icon there did nothing. This handler takes
+// a tap anywhere on the bar: top half accepts, bottom half declines. A drag
+// is not a tap (the system keeps its back swipe), and touches made before
+// the watch is awake are ignored. A double send is stopped by s_sending.
+#define TAP_SLOP 10
+static GPoint s_touch_start;
+static bool s_touch_is_tap;
+
+static void detail_touch(const TouchEvent *e, void *ctx) {
+  if (e->non_navigational) { s_touch_is_tap = false; return; }
+  int dx = e->x - s_touch_start.x, dy = e->y - s_touch_start.y;
+  switch (e->type) {
+    case TouchEvent_Touchdown:
+      s_touch_start = GPoint(e->x, e->y);
+      s_touch_is_tap = true;
+      break;
+    case TouchEvent_PositionUpdate:
+      if (dx > TAP_SLOP || dx < -TAP_SLOP || dy > TAP_SLOP || dy < -TAP_SLOP) s_touch_is_tap = false;
+      break;
+    case TouchEvent_Liftoff: {
+      if (!s_touch_is_tap || !s_detail_window) break;
+      s_touch_is_tap = false;
+      GRect b = layer_get_bounds(window_get_root_layer(s_detail_window));
+      if (s_touch_start.x < b.size.w - ACTION_BAR_WIDTH - 8) break;  // not on the bar
+      send_response(s_touch_start.y < b.size.h / 2);
+      break;
+    }
+  }
+}
+#endif
+
 static void detail_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_UP, accept_click);
   window_single_click_subscribe(BUTTON_ID_DOWN, decline_click);
@@ -136,6 +170,16 @@ static void detail_load(Window *window) {
 
 static void detail_appear(Window *window) {
   comm_set_handler(detail_comm_handler);
+#if defined(PBL_TOUCH)
+  s_touch_is_tap = false;
+  if (touch_service_is_enabled()) touch_service_subscribe(detail_touch, NULL);
+#endif
+}
+
+static void detail_disappear(Window *window) {
+#if defined(PBL_TOUCH)
+  touch_service_unsubscribe();
+#endif
 }
 
 static void detail_unload(Window *window) {
@@ -157,6 +201,7 @@ static void detail_push(const RequestRow *row) {
   window_set_window_handlers(s_detail_window, (WindowHandlers) {
     .load = detail_load,
     .appear = detail_appear,
+    .disappear = detail_disappear,
     .unload = detail_unload,
   });
   window_stack_push(s_detail_window, true);

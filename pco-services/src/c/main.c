@@ -82,6 +82,12 @@ static void ready_timeout(void *ctx) {
 }
 
 static void init(void) {
+#if defined(PBL_TOUCH)
+  // Time 2 and Round 2: let the system drive menus and the action bar by
+  // touch (tap a row to open it, swipe to scroll, tap the accept/decline
+  // icons). It only acts after the user wakes the watch or presses a button.
+  app_touch_navigation_enable(true);
+#endif
   data_load();
   comm_init((CommCallbacks) {
     .on_ready = on_ready,

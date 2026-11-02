@@ -204,9 +204,13 @@ static void marquee_stop(void) {}
 
 // Section headers are dividers, not choices: the cursor skips over them in
 // the direction it was moving, and stays put if only headers are left.
+// A jump of more than one row is a tap on the header (Time 2, Round 2):
+// keep the selection where it was.
 static void selection_will_change(MenuLayer *ml, MenuIndex *new_index, MenuIndex old_index, void *ctx) {
   if (!is_header_row(new_index->row)) return;
-  int step = new_index->row > old_index.row ? 1 : -1;
+  int jump = new_index->row - old_index.row;
+  if (jump > 1 || jump < -1) { *new_index = old_index; return; }
+  int step = jump > 0 ? 1 : -1;
   int rows = get_num_rows(ml, 0, NULL);
   for (int r = new_index->row + step; r >= 0 && r < rows; r += step) {
     if (!is_header_row(r)) { new_index->row = r; return; }
