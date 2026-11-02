@@ -138,6 +138,7 @@ Product: Services. Base URL: `https://api.planningcenteronline.com/services/v2`.
 2. Main menu (`MenuLayer`). Lists upcoming plans by service type, up to 4 per type. The top row shows the cache age ("Updated 5m ago", "Offline · 2h ago"); SELECT on it refreshes. Long-press SELECT on a plan opens its live view. A last "More" section opens Requests. A small badge after a plan's date shows the user's schedule status: amber "?" = requested (not answered), green check = accepted, red X = declined, no badge = not scheduled. Black and white watches draw the same glyphs in black, so the shape carries the meaning, not only the color. Answering a request refreshes the list when the user returns to it.
 3. Plan order view (`MenuLayer`). The first row opens the live view. Headers show as gray dividers, and the cursor skips over them when scrolling. Subtitles show key, length and pre/post-service. When the selected item's title or subtitle is too wide, it scrolls sideways: a 1 second pause, scroll to the end, a pause, then back to the start, three times, then it rests. Not on aplite, which has no memory to spare; long text there ends in "…".
 4. Live view. The current item (28 pt, up to 2 lines), time left in the item counting down, "left of 4:30" or "over 4:30" in red, a progress bar, and the next item at the bottom. A `StatusBarLayer` shows the time of day. "Reconnecting..." replaces the label when the last good poll is over 20 seconds old.
+6. App glance (not on aplite, which has no glance). The line under the app name in the watch's app list shows the next plan the user is scheduled on, soonest first: "Nov 8 · Sunday Morning", or "Reply: Nov 8 · Sunday Morning" while the request is unanswered. It is rebuilt when the app exits, with one slice per scheduled plan (up to the system limit, 8). Each slice expires 4 hours after its plan starts (`sort_date`, sent as `Time`), so the glance moves on by itself. Declined and unscheduled plans are left out; with none, the glance is empty.
 5. Requests view (nice-to-have). Pending requests, then a detail screen with an `ActionBarLayer`: UP accepts, DOWN declines. The detail text is black and bold, with larger fonts on Time 2 and Round 2, and the date and position on separate lines. Rectangular screens show an "Up: accept / Down: decline" hint at the bottom; round screens rely on the action bar icons. A result dialog closes itself after 2 seconds.
 
 **Touch (Time 2 and Round 2)**
@@ -193,7 +194,7 @@ These come from the Pebble developer guides: [Best Practices](https://developer.
 - Store a storage version number. Migrate or delete old data when the format changes.
 - Read and write storage at launch or exit, not during scrolling.
 - Remember the last service type the user opened. Open it first on the next launch. (The watch sends it as `LastServiceType`; PebbleKit JS lists that type first.)
-- Each cached plan row is 137 bytes (storage version 2 added the schedule status). On watches with 4 kB of storage the watch caches the first 16 plans, and stops if a write fails. Sign-out deletes the cached plans on the watch.
+- Each cached plan row is 144 bytes (storage version 2 added the schedule status, version 3 the start time). On watches with 4 kB of storage the watch caches the first 16 plans, and stops if a write fails. Sign-out deletes the cached plans on the watch.
 - PebbleKit JS starts a fresh context on each launch. Keep state that must survive in `localStorage`.
 
 **Screens on every watch**
@@ -308,4 +309,5 @@ Still open:
 | Touch | Not in spec | System touch navigation on Time 2 and Round 2, plus half-bar taps on the request detail | Use the touchscreen; round action bar icons sit between the system's tap zones. |
 | Schedule status badges | Not in spec | Requested/accepted/declined badge on each main menu plan, from `/people/{id}/schedules` (`filter=with_declined,after`, falling back to `after`) | See at a glance which plans need an answer. |
 | Plan cache on 4 kB watches | All plans | First 16, write results checked | 24 rows plus overhead could exceed the 4 kB limit. |
+| App glance | Not in spec | Next scheduled plan under the app name in the app list | Core experience guide: system apps show their next item there. |
 | Text Size | Not followed | Large fonts only on tall screens and not at a smaller Text Size | Content Size guide; the Time Round's big clock also cut the item name to one line. |

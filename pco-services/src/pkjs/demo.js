@@ -13,6 +13,10 @@ var PLANS = [
   { section: 'Youth Night', serviceTypeId: '102', planId: '9101', title: 'Nov 4', subtitle: 'Worship night', status: 3 },
   { section: 'Youth Night', serviceTypeId: '102', planId: '9102', title: 'Nov 11', subtitle: '', status: 1 }
 ];
+// Start times relative to now, so the app glance has something upcoming.
+var DAY = 86400;
+var nowSec = Math.floor(Date.now() / 1000);
+[0.1, 7, 14, 3, 10].forEach(function (days, i) { PLANS[i].time = nowSec + Math.round(days * DAY); });
 
 var ITEMS = [
   { id: '1', title: 'Pre-Service', kind: KIND.HEADER, length: 0, subtitle: '' },

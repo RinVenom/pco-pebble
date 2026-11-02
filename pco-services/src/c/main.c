@@ -105,8 +105,51 @@ static void init(void) {
   }
 }
 
+#if defined(_PBL_API_EXISTS_app_glance_reload)  // = PBL_API_EXISTS(app_glance_reload), without its warning
+// App glance: the line under "PCO Services" in the watch's app list. One
+// slice per upcoming plan the user is scheduled on (accepted or still to
+// answer), soonest first. Each slice lasts until 4 hours after its plan
+// starts, so the glance moves to the next service by itself. Declined and
+// unscheduled plans are left out; with none, the glance is empty.
+#define GLANCE_KEEP_SECONDS (4 * 3600)
+
+static void glance_reload(AppGlanceReloadSession *session, size_t limit, void *ctx) {
+  time_t now = time(NULL);
+  bool used[MAX_PLANS] = { false };
+  for (size_t added = 0; added < limit; added++) {
+    // Next soonest plan not shown yet.
+    int best = -1;
+    for (int i = 0; i < g_data.plan_count; i++) {
+      PlanRow *p = &g_data.plans[i];
+      if (used[i] || p->time <= 0) continue;
+      if (p->status != STATUS_ACCEPTED && p->status != STATUS_REQUESTED) continue;
+      if ((time_t)p->time + GLANCE_KEEP_SECONDS <= now) continue;
+      if (best < 0 || p->time < g_data.plans[best].time) best = i;
+    }
+    if (best < 0) return;
+    used[best] = true;
+    PlanRow *p = &g_data.plans[best];
+    char text[TITLE_LEN + SECTION_LEN + 16];
+    snprintf(text, sizeof(text), "%s%s · %s",
+             p->status == STATUS_REQUESTED ? "Reply: " : "", p->title, p->section);
+    AppGlanceSlice slice = {
+      .layout = { .icon = APP_GLANCE_SLICE_DEFAULT_ICON, .subtitle_template_string = text },
+      .expiration_time = (time_t)p->time + GLANCE_KEEP_SECONDS,
+    };
+    AppGlanceResult r = app_glance_add_slice(session, slice);
+    if (r != APP_GLANCE_RESULT_SUCCESS) {
+      APP_LOG(APP_LOG_LEVEL_WARNING, "App glance slice %d failed: %d", (int)added, (int)r);
+      return;
+    }
+  }
+}
+#endif
+
 static void deinit(void) {
   data_save();
+#if defined(_PBL_API_EXISTS_app_glance_reload)  // = PBL_API_EXISTS(app_glance_reload), without its warning
+  app_glance_reload(glance_reload, NULL);
+#endif
   comm_deinit();
 }
 

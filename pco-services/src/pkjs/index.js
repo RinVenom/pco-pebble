@@ -93,7 +93,8 @@ function handleRequest(p) {
           PlanId: cut(r.planId, MAX.ID),
           Title: cut(r.title, MAX.TITLE),
           Subtitle: cut(r.subtitle, MAX.SUBTITLE),
-          Status: r.status || 0
+          Status: r.status || 0,
+          Time: r.time || 0
         };
       }), reqId);
     });

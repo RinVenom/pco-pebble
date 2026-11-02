@@ -3,7 +3,7 @@
 AppData g_data;
 
 // Persistent storage keys. Bump STORAGE_VERSION when a stored layout changes.
-#define STORAGE_VERSION 2  // 2: PlanRow gained status
+#define STORAGE_VERSION 3  // 2: PlanRow gained status; 3: and time
 #define KEY_VERSION 1
 #define KEY_PLAN_COUNT 2
 #define KEY_PLANS_UPDATED 3

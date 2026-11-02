@@ -171,6 +171,8 @@ static bool store_row(DictionaryIterator *iter) {
         int32_t status = STATUS_NONE;
         int_of(iter, MESSAGE_KEY_Status, &status);
         p->status = (status >= STATUS_NONE && status <= STATUS_DECLINED) ? (uint8_t)status : STATUS_NONE;
+        p->time = 0;
+        int_of(iter, MESSAGE_KEY_Time, &p->time);
       }
       if (index + 1 >= count) {
         g_data.plans_updated = time(NULL);

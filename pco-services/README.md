@@ -70,6 +70,13 @@ again to open it. On a request, tap the top half of the right-hand bar to
 accept and the bottom half to decline. See the design doc for how to send
 touches to the emulator.
 
+## App list (glance)
+
+On every watch except the original Pebble, the line under **PCO Services**
+in the watch's app list shows your next scheduled service, or "Reply: …"
+when it still needs an answer. It updates when you close the app and moves
+to the next service a few hours after each one starts.
+
 ## Settings page
 
 Signed in, the app's **Settings** in the Pebble app opens the same hosted

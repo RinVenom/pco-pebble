@@ -152,7 +152,9 @@ function getPlans(lastServiceTypeId, cap, cb) {
             planId: String(p.id),
             title: a.short_dates || a.dates || 'No date',
             subtitle: a.title || a.series_title || (a.items_count ? a.items_count + ' items' : ''),
-            status: statuses[String(p.id)] || STATUS.NONE
+            status: statuses[String(p.id)] || STATUS.NONE,
+            // Plan start (first service time) in Unix seconds, for the app glance.
+            time: a.sort_date ? Math.floor(Date.parse(a.sort_date) / 1000) || 0 : 0
           });
         });
       });

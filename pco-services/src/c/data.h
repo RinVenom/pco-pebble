@@ -41,7 +41,8 @@ typedef struct {
   char title[TITLE_LEN];
   char subtitle[SUBTITLE_LEN];
   uint8_t status;  // PlanStatus
-} PlanRow;  // 137 bytes, under PERSIST_DATA_MAX_LENGTH (256)
+  int32_t time;    // plan start, Unix seconds (0 = unknown)
+} PlanRow;  // 144 bytes, under PERSIST_DATA_MAX_LENGTH (256)
 
 typedef struct {
   char id[ID_LEN];
