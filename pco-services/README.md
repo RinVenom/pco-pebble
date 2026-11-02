@@ -85,6 +85,21 @@ watch shows, switch account and sign out. The service type list is the one
 seen on the last plans refresh, so open the watch app once after signing in.
 Changing the service types makes a running watch app reload its plans.
 
+## Keeping up with Pebble SDK changes
+
+`.github/workflows/pebble-sdk-check.yml` runs every Monday on GitHub. It
+installs the newest Pebble SDK, builds the app, and opens an issue labeled
+`pebble-sdk` (GitHub emails the repo owner) when:
+
+- Pebble publishes an SDK newer than the one in `.pebble-sdk-version`
+- the app does not build with the newest SDK
+- the check itself fails
+
+After updating the app for a new SDK, put that version in
+`.pebble-sdk-version` and close the issue. It can also be run by hand from
+the repo's **Actions** tab; the `dry_run` option prints the issues instead
+of opening them.
+
 ## Still to test on real hardware
 
 The `pebble` tool runs its own PebbleKit JS, not the iOS and Android ones:

@@ -287,6 +287,17 @@ Still open:
 - The "No phone" alert on a real watch. The emulator reconnects its phone link at once, so it could not be tested there.
 - Optional timeline pins. Not built.
 
+## Keeping up with Pebble changes
+
+A weekly GitHub Actions workflow (`.github/workflows/pebble-sdk-check.yml`, script in `.github/scripts/`) installs `pebble-tool` and `pebble sdk install latest` on Ubuntu 24.04, builds the app, and compares versions:
+
+- The app's SDK version is in `pco-services/.pebble-sdk-version` (now 4.33.1).
+- The newest SDK is the higher of the installed "latest" and the newest "Pebble SDK x.y - Changelog" entry in `https://developer.repebble.com/llms.txt`.
+- It opens an issue (label `pebble-sdk`, mentioning the repo owner) for a newer SDK (once per version, even after the issue is closed), for a failed build, and for a failed check. If the changelog list cannot be parsed, that is an issue too, so the check never stops silently.
+- On scheduled runs it re-enables itself, because GitHub pauses scheduled workflows in a public repo after 60 days without commits.
+- Planning Center API changes are announced to the OAuth app's technical contact email. The app pins Services API version 2018-11-01.
+- Not covered: Pebble mobile app changes that are not in the SDK changelog.
+
 ## Changes after the first build
 
 | Area | First version | Now | Why |
