@@ -1,0 +1,88 @@
+# Weekly check for Pebble SDK changes that may need an app update.
+# Opens a GitHub issue (GitHub emails the repo owner) when:
+#  - Pebble publishes an SDK newer than pco-services/.pebble-sdk-version
+#  - the app does not build with the newest SDK
+#  - the check itself breaks (so it never fails silently)
+# After updating the app for a new SDK, put that version in
+# pco-services/.pebble-sdk-version and close the issue.
+name: Weekly Pebble SDK check
+
+on:
+  schedule:
+    - cron: '0 15 * * 1'   # Mondays 15:00 UTC
+  workflow_dispatch:
+    inputs:
+      baseline:
+        description: 'Pretend the app is on this SDK version (testing)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Print the issues instead of opening them'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+  actions: write   # keeps this scheduled workflow from being paused after 60 quiet days
+
+concurrency:
+  group: pebble-sdk-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASELINE_OVERRIDE: ${{ inputs.baseline }}
+      DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install SDK dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libsdl2-2.0-0 libglib2.0-0 libpixman-1-0 zlib1g libsndio7.0 libpng16-16
+
+      - name: Install pebble tool and the newest SDK
+        run: |
+          uv tool install --python 3.13 pebble-tool
+          pebble sdk install latest
+          pebble sdk list
+
+      - name: Build the app with the newest SDK
+        id: build
+        continue-on-error: true
+        working-directory: pco-services
+        run: |
+          set -o pipefail
+          pebble build 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Compare versions and open issues
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        run: bash .github/scripts/pebble-sdk-check.sh
+
+      - name: Report a broken check
+        if: failure()
+        run: |
+          title="Weekly Pebble SDK check failed"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ -n "$DRY_RUN" ]; then echo "DRY RUN: would open '$title'"; exit 0; fi
+          if [ -z "$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[].number')" ]; then
+            gh issue create --title "$title" --label pebble-sdk --body "The weekly check could not finish, so SDK changes may go unnoticed. See the run log: $run_url
+
+          @${{ github.repository_owner }}"
+          fi
+
+      - name: Keep the weekly schedule active
+        if: always() && github.event_name == 'schedule'
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/pebble-sdk-check.yml/enable" || true
