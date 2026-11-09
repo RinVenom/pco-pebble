@@ -8,6 +8,7 @@
 #define POLL_MS 5000
 #define MAX_BACKOFF_MS 60000
 #define STALE_SECONDS 20
+#define CLOCK_BAND_TOP 6  // black-and-white over-time band: offset into the clock row (digits start lower)
 
 static Window *s_window;
 static StatusBarLayer *s_status_bar;
@@ -61,7 +62,10 @@ static void draw(Layer *layer, GContext *ctx) {
 
   GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
   GFont small_font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
-  GFont small_bold = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+  // The label under the clock and the "Next" line: bold black, larger on
+  // Time 2 and Round 2. (Regular dark gray was hard to read on a Time 2.)
+  GFont info_font = fonts_get_system_font(large ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD);
+  int info_line = large ? 28 : 22;
   GFont clock_font = fonts_get_system_font(large ? FONT_KEY_LECO_42_NUMBERS : FONT_KEY_LECO_32_BOLD_NUMBERS);
   int clock_h = large ? 46 : 34;
 
@@ -90,11 +94,11 @@ static void draw(Layer *layer, GContext *ctx) {
   if (l->next[0]) {
     char next[TITLE_LEN + 8];
     snprintf(next, sizeof(next), "Next: %s", l->next);
-    next_h = 22 * PBL_IF_ROUND_ELSE(1, (large && b.size.h >= 200) ? 2 : 1);
-    graphics_context_set_text_color(ctx, MUTED_COLOR);
+    next_h = info_line * PBL_IF_ROUND_ELSE(1, (large && b.size.h >= 200) ? 2 : 1);
+    graphics_context_set_text_color(ctx, GColorBlack);
     // The circle is narrower near the bottom of round screens.
     int nx = PBL_IF_ROUND_ELSE(b.size.w / 10, 0);
-    draw_block(ctx, next, small_font, GRect(x + nx, bottom - next_h, w - 2 * nx, next_h), align);
+    draw_block(ctx, next, info_font, GRect(x + nx, bottom - next_h, w - 2 * nx, next_h), align);
   }
 
   if (!l->live) {
@@ -107,7 +111,8 @@ static void draw(Layer *layer, GContext *ctx) {
   }
 
   // Fit title (28 pt, up to 2 lines), clock, label and bar above "Next".
-  const int gap = 2, label_h = 20;
+  const int gap = 2;
+  int label_h = large ? 26 : 20;
   int bar_h = has_length ? 8 : 0;
   int avail = bottom - top - next_h;
   int title_max = avail - (gap + clock_h + label_h + bar_h);
@@ -134,11 +139,25 @@ static void draw(Layer *layer, GContext *ctx) {
   draw_block(ctx, l->current, title_font, GRect(x, y - 4, w, title_max), align);
   y += title_h + gap;
 
-  // Clock: time left in the item, or time over it.
-  char clock[16];
-  format_clock(has_length ? remaining : elapsed, clock, sizeof(clock));
-  graphics_context_set_text_color(ctx, over ? ALERT_COLOR : GColorBlack);
-  graphics_draw_text(ctx, clock, clock_font, GRect(x, y, w, clock_h),
+  // Clock: time left in the item, or time over it with a minus sign. Over
+  // time is red on color watches; black and white watches show white
+  // digits on a black band instead.
+  char clock[17];
+  clock[0] = '-';
+  format_clock(has_length ? remaining : elapsed, clock + 1, sizeof(clock) - 1);
+  const char *clock_text = over ? clock : clock + 1;
+  GColor clock_color = over ? ALERT_COLOR : GColorBlack;
+  int clock_x = x;
+#if defined(PBL_BW)
+  if (over) {
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_fill_rect(ctx, GRect(x - 2, y + CLOCK_BAND_TOP, w + 4, clock_h - CLOCK_BAND_TOP + 1), 3, GCornersAll);
+    clock_color = GColorWhite;
+    clock_x = x + 3;  // room inside the band's left edge
+  }
+#endif
+  graphics_context_set_text_color(ctx, clock_color);
+  graphics_draw_text(ctx, clock_text, clock_font, GRect(clock_x, y, w - (clock_x - x), clock_h),
                      GTextOverflowModeTrailingEllipsis, align, NULL);
   y += clock_h;
 
@@ -150,8 +169,8 @@ static void draw(Layer *layer, GContext *ctx) {
   else if (!has_length) snprintf(label, sizeof(label), "elapsed");
   else if (over) snprintf(label, sizeof(label), "over %s", len_buf);
   else snprintf(label, sizeof(label), "left of %s", len_buf);
-  graphics_context_set_text_color(ctx, over && !stale ? ALERT_COLOR : MUTED_COLOR);
-  graphics_draw_text(ctx, label, over ? small_bold : small_font, GRect(x, y - 4, w, 22),
+  graphics_context_set_text_color(ctx, over && !stale ? ALERT_COLOR : GColorBlack);
+  graphics_draw_text(ctx, label, info_font, GRect(x, y - 4, w, info_line),
                      GTextOverflowModeTrailingEllipsis, align, NULL);
   y += label_h;
 
